@@ -130,29 +130,6 @@ public class questionGenerator {
          }
  
          //Now we generate the problems themselves
-         //open the file to write to
-         String outFileName = "C:\\Users\\Mike\\Dropbox\\GENE123\\detector\\questionsOut.txt";
-         
-         //open the buffered writer
-         //TODO: move to the NIO framework
-         BufferedWriter bw;
-         bw = new BufferedWriter(new FileWriter(outFileName));
-         
-         //generate the easy ones first
-         
-         //voltages and currents through each component
-         //TODO: make this output in just about every format imaginable
-         for(int i = 0; i < devices.size();i++){
-        	 bw.write("Q: ");
-        	 bw.write("What is the voltage across ");
-        	 bw.write(devices.get(i).name);
-        	 bw.write("\nA: ");
-        	 bw.write("" + (devices.get(i).voltage1 - devices.get(i).voltage2) + "\n");
-         }
-         
-         //always close your files!
-         bw.close();
-         System.out.println("Question generation done!");
          
          //I know this should all be different functions and perhaps different classes.
          
@@ -162,16 +139,67 @@ public class questionGenerator {
          cr.initNodes();
          cr.generateDeviceCurrents();
          cr.generateNodalEquations();
-         System.out.println(cr.MapleTAOut());
-         /*System.out.println("Nodes: ");
-         for(int i = 0; i < cr.nodes.size(); i++)
-         {
-        	 System.out.println("" + cr.nodes.get(i).nodeNum + " " + cr.nodes.get(i).voltage + " " + cr.nodes.get(i).eqn + " " + cr.nodes.get(i).known);
-         }*/
-         //cr.findSeries();
-        // cr.printSeries();
+         ArrayList<String> als = new ArrayList<String>();
+         als = cr.MapleTADeviceVoltageOut(); 
          
+         //TODO: Make this into an intelligent question
+         int topicNum = 1;
+         int qNum = 1;
+         String pre = "qu.";
+         //the algorthm variables
+         String vars = als.get(0);
          
-	}
+         //the common things
+         String mode = ".mode=Numeric@\n";
+         String editing = ".editing=useHTML@\n";
+         String ans = ".answer.num=$answer@\n";
+         String units = ".answer.units=@\n";
+         String show = ".showUnits=false@\n";
+         
+         //now we need to start at 1, since als(0) is the common variable string
 
+         //open the buffered writer
+         //TODO: move to the NIO framework
+         //open the file to write to
+         String outFileName = "C:\\Users\\Mike\\Dropbox\\GENE123\\mapleTA\\questionsOut.qu";
+         BufferedWriter bw;
+         bw = new BufferedWriter(new FileWriter(outFileName));
+         
+         ///the first line in the file should be the topic number
+         bw.write(pre + topicNum + ".topic=Voltage acrosss devices@\n\n");
+         
+         for(int i = 1; i < als.size(); i++)
+         {
+        	 String tmp = pre + topicNum + "." + qNum;
+        	 String qString = tmp + ".question=What is the voltage across ";
+        	 //extract the device name from the answer string
+        	 String[] ansString = als.get(i).split(":");
+        	 qString += ansString[0] + " $answer @\n";
+        	 qString += tmp + ".name=Device Voltage " + i + "@\n"; //TODO: this naming needs to be smarter, probably include the circuit name
+        	 qString += tmp + mode;
+        	 qString += tmp + editing;
+        	 
+        	 //tolerance.
+        	 //TODO: make this a user-settable parameter
+        	 qString += tmp + ".grading=toler_perc@\n";
+        	 qString += tmp + ".perc=2@\n"; //2% default for now
+        	 
+        	 //now fill in the algorithm
+        	 qString += tmp + ".algorithm=" + vars + ansString[1] + "\n";
+        	 
+        	 //now finish up
+        	 qString += tmp + ans;
+        	 qString += tmp + units;
+        	 qString += tmp + show;
+        	 
+        	 bw.write(qString);
+        	 bw.write("\n"); //just so it's easier to see the difference between questions
+        	 //next question
+        	 qNum++;
+         }
+         bw.close();
+         System.out.println("Done generating file");
+	}
+	
+	
 }
